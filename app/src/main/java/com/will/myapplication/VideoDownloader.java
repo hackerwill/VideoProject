@@ -1,6 +1,8 @@
 package com.will.myapplication;
 
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.PowerManager;
@@ -27,9 +29,31 @@ public class VideoDownloader extends AsyncTask<String, Integer, String> {
     private PowerManager.WakeLock mWakeLock;
     private final int TIMEOUT_CONNECTION = 5000;//5sec
     private final int TIMEOUT_SOCKET = 30000;//30sec
+    // declare the dialog as a member field of your activity
+    ProgressDialog mProgressDialog;
+    private MainActivity mainActivity;
 
-    public VideoDownloader(Context context){
+    public VideoDownloader(Context context, MainActivity mainActivity){
         this.context = context;
+        this.mainActivity = mainActivity;
+    }
+
+    @Override
+    protected void onPreExecute() {
+        // instantiate it within the onCreate method
+        mProgressDialog = new ProgressDialog(mainActivity);
+        mProgressDialog.setMessage("A message");
+        mProgressDialog.setIndeterminate(true);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mProgressDialog.setCancelable(true);
+        mProgressDialog.show();
+
+        mProgressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                VideoDownloader.this.cancel(true);
+            }
+        });
     }
 
     @Override
@@ -92,18 +116,35 @@ public class VideoDownloader extends AsyncTask<String, Integer, String> {
         } catch (Exception e) {
             return e.toString();
         } finally {
-                    try {
-                        if (output != null)
-                            output.close();
-                        if (input != null)
-                            input.close();
+            try {
+            if (output != null)
+                output.close();
+                if (input != null)
+                input.close();
             } catch (IOException ignored) {
+                ignored.printStackTrace();
             }
 
             if (connection != null)
                 connection.disconnect();
         }
         return null;
+    }
+
+    @Override
+    protected void onProgressUpdate(Integer... values) {
+        mProgressDialog.setMessage("当前下载进度：" + values[0] + "%");
+        mProgressDialog.setProgress(values[0]);
+    }
+
+    @Override
+    protected void onPostExecute(String result) {
+        mProgressDialog.dismiss();
+        if (result != null) {
+            Toast.makeText(context, "下载成功", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "下载失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private boolean isSDExisted(){
@@ -115,6 +156,11 @@ public class VideoDownloader extends AsyncTask<String, Integer, String> {
         }
     }
 
+
+    /**
+     * Download directly
+     *
+     * */
     public File getFile(String fileName){
         File path = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
         File file = new File(path, fileName);
