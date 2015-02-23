@@ -1,4 +1,4 @@
-package com.will.myapplication;
+package com.will.myapplication.PlayVideo.model;
 
 import android.util.Log;
 

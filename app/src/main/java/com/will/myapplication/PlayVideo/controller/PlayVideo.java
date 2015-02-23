@@ -1,4 +1,4 @@
-package com.will.myapplication;
+package com.will.myapplication.PlayVideo.controller;
 
 import android.content.Intent;
 import android.graphics.Color;
@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -16,6 +17,11 @@ import android.widget.MediaController;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.VideoView;
+
+import com.will.myapplication.showList.controller.VideoDownloader;
+import com.will.myapplication.showList.model.Member;
+import com.will.myapplication.R;
+import com.will.myapplication.PlayVideo.model.Subtitle;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -29,13 +35,19 @@ import java.util.TimeZone;
 
 public class PlayVideo extends ActionBarActivity {
 
-    File sdcard = Environment.getExternalStorageDirectory();
+    private String VIDEO_FILE_TYPE = ".mp4";
+    private String VIDEO_SUBTITLE_POST = "_subtitles.txt";
+    File SDCARD = null;
     private Member member;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.play_video);
+
+        if(VideoDownloader.isSDExisted()) {
+            SDCARD = PlayVideo.this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+        }
         Intent intent = getIntent();
         member = (Member)intent.getExtras().getSerializable("member");
         findVideos();
@@ -44,21 +56,27 @@ public class PlayVideo extends ActionBarActivity {
     }
 
     private void findVideos(){
-
-        String LINK = sdcard + "/" + member.getLink();
-        VideoView videoView = (VideoView) findViewById(R.id.vvScreen);
-        MediaController mc = new MediaController(this);
-        mc.setAnchorView(videoView);
-        mc.setMediaPlayer(videoView);
-        videoView.setMediaController(mc);
-        videoView.setVideoPath(LINK);
-        videoView.start();
+        if(VideoDownloader.isSDExisted()){
+            String LINK = SDCARD + "/" + member.getName() + VIDEO_FILE_TYPE;
+            VideoView videoView = (VideoView) findViewById(R.id.vvScreen);
+            MediaController mc = new MediaController(this);
+            mc.setAnchorView(videoView);
+            mc.setMediaPlayer(videoView);
+            videoView.setMediaController(mc);
+            videoView.setVideoPath(LINK);
+            videoView.start();
+        }
 
     }
 
     private void findSubsitles(){
 
-        File file = new File(sdcard, member.getSubtitleLink());
+        String subtitleLink = member.getName() + VIDEO_SUBTITLE_POST;
+        File file = new File(SDCARD, subtitleLink);
+        if(!file.exists()){
+            Log.i("PlayVideo", "The subtitle is not existed : " + subtitleLink);
+            return;
+        }
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
